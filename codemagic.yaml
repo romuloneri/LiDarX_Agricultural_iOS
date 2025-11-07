@@ -1,17 +1,15 @@
 workflows:
   lidarx_ios:
-    name: LiDarX iOS (WebView)
+    name: LiDarX iOS Build
     environment:
-      xcode: latest
-      vars:
-        XCODE_PROJECT: "LiDarX.xcodeproj"
-        XCODE_SCHEME: "LiDarX Agricultural"
+      groups:
+        - LiDarX   # <-- grupo de variáveis configuradas no painel
     scripts:
       - name: Build IPA
         script: |
           xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME" \
+            --project "LiDarX.xcodeproj" \
+            --scheme "LiDarX Agricultural" \
             --archive-configuration Release
     artifacts:
       - build/ios/ipa/*.ipa
@@ -20,5 +18,5 @@ workflows:
         api_key:
           key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
           issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-          private_key: $APP_STORE_CONNECT_PRIVATE_KEY
+          private_key: $APP_STORE_CONNECT_KEY
         submit_to_testflight: true
