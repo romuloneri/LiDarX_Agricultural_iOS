@@ -13,11 +13,11 @@ workflows:
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
-            --configuration Release
+            --archive-configuration Release
     artifacts:
       - build/ios/ipa/*.ipa
-      
-publishing:
+    
+    publishing:
       app_store_connect:
         api_key:
           key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
