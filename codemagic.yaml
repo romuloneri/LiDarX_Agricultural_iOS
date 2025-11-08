@@ -1,11 +1,11 @@
-workflows:
+   workflows:
   lidarx_ios:
     name: LiDarX iOS Build
     environment:
       groups:
         - LiDarX
       vars:
-        XCODE_PROJECT: "LiDarX.xcodeproj"        # trocaremos p/ .xcworkspace se precisar
+        XCODE_PROJECT: "LiDarX.xcodeproj"
         XCODE_SCHEME: "LiDarX Agricultural"
     scripts:
       - name: Build IPA
@@ -16,10 +16,9 @@ workflows:
           --archive-configuration Release
     artifacts:
       - build/ios/ipa/*.ipa
-    
     publishing:
       app_store_connect:
         submit_to_testflight: true
-        api_key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        api_key: $APP_STORE_CONNECT_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        key: Encrypted($APP_STORE_CONNECT_KEY)
