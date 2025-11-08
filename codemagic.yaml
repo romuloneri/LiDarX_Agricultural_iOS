@@ -7,13 +7,13 @@ workflows:
       vars:
         XCODE_PROJECT: "LiDarX.xcodeproj"
         XCODE_SCHEME: "LiDarX Agricultural"
-    scripts:
+        scripts:
       - name: Build IPA
         script: |
           xcode-project build-ipa \
           --project "$XCODE_PROJECT" \
           --scheme "$XCODE_SCHEME" \
-          --archive-configuration Release
+          --configuration Release
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
@@ -22,3 +22,4 @@ workflows:
         api_key: $APP_STORE_CONNECT_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+
