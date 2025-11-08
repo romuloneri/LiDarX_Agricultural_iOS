@@ -3,7 +3,7 @@ workflows:
     name: LiDarX iOS Build
     environment:
       groups:
-        - LiDarX   # grupo de variáveis criado no painel do Codemagic
+        - LiDarX   # grupo criado no painel do Codemagic
       vars:
         XCODE_PROJECT: "LiDarX.xcodeproj"
         XCODE_SCHEME: "LiDarX Agricultural"
@@ -16,6 +16,7 @@ workflows:
             --configuration Release
     artifacts:
       - build/ios/ipa/*.ipa
+    
     publishing:
       app_store_connect:
         api_key:
