@@ -3,7 +3,7 @@ workflows:
     name: LiDarX iOS Build
     environment:
       groups:
-        - LiDarX  # grupo criado no painel de variáveis
+        - LiDarX   # grupo de variáveis criado no painel do Codemagic
       vars:
         XCODE_PROJECT: "LiDarX.xcodeproj"
         XCODE_SCHEME: "LiDarX Agricultural"
@@ -23,4 +23,3 @@ workflows:
           issuer_id: $APP_STORE_CONNECT_ISSUER_ID
           private_key: $APP_STORE_CONNECT_PRIVATE_KEY
         submit_to_testflight: true
-
