@@ -3,7 +3,7 @@ workflows:
     name: LiDarX iOS Build
     environment:
       groups:
-        - LiDarX            # importa as variáveis do painel
+        - LiDarX
       vars:
         XCODE_PROJECT: "LiDarX.xcodeproj"
         XCODE_SCHEME:  "LiDarX Agricultural"
@@ -20,8 +20,7 @@ workflows:
 
     publishing:
       app_store_connect:
-        # <<< use o formato “achatado” exigido pelo schema >>>
         key_identifier: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id:    $APP_STORE_CONNECT_ISSUER_ID
-        private_key:  $APP_STORE_CONNECT_KEY
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        private_key: $APP_STORE_CONNECT_KEY
         submit_to_testflight: true
