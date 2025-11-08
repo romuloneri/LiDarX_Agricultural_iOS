@@ -5,15 +5,16 @@ workflows:
       groups:
         - LiDarX
       vars:
-        XCODE_PROJECT: "LiDarX.xcodeproj"
+        XCODE_PROJECT: "LiDarX.xcodeproj"   # se usar Pods, trocaremos por .xcworkspace
         XCODE_SCHEME: "LiDarX Agricultural"
-        scripts:
+    scripts:
       - name: Build IPA
         script: |
+          set -e
           xcode-project build-ipa \
-          --project "$XCODE_PROJECT" \
-          --scheme "$XCODE_SCHEME" \
-          --configuration Release
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME" \
+            --configuration Release
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
@@ -22,4 +23,3 @@ workflows:
         api_key: $APP_STORE_CONNECT_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-
