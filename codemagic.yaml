@@ -3,21 +3,28 @@ workflows:
     name: LiDarX iOS Build
     environment:
       groups:
-        - LiDarX   # grupo de variáveis configurado no painel do Codemagic
+        - LiDarX            # grupo criado no painel de variáveis
+      vars:
+        XCODE_PROJECT: "LiDarX.xcodeproj"
+        XCODE_SCHEME: "LiDarX Agricultural"
+
     scripts:
-  - name: Build IPA
-    script: |
-      xcode-project build-ipa \
-        --project "$XCODE_PROJECT" \
-        --scheme "$XCODE_SCHEME"
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-configuration Release
+
     artifacts:
       - build/ios/ipa/*.ipa
-    
-publishing:
-  app_store_connect:
-    api_key:
-      key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-      issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-      private_key: $APP_STORE_CONNECT_KEY
-    submit_to_testflight: true
+
+    publishing:
+      app_store_connect:
+        api_key:
+          key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+          issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+          private_key: $APP_STORE_CONNECT_KEY
+        submit_to_testflight: true
+
 
