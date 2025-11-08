@@ -4,7 +4,7 @@ workflows:
 
     environment:
       groups:
-        - LiDarX         # grupo de variáveis criado no painel
+        - LiDarX                   # EXATAMENTE esse nome do grupo no painel
       vars:
         XCODE_PROJECT: "LiDarX.xcodeproj"
         XCODE_SCHEME:  "LiDarX Agricultural"
@@ -26,4 +26,3 @@ workflows:
           issuer_id: $APP_STORE_CONNECT_ISSUER_ID
           private_key: $APP_STORE_CONNECT_KEY
         submit_to_testflight: true
-
