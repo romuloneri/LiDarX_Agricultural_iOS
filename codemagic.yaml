@@ -1,9 +1,10 @@
 workflows:
   lidarx_ios:
     name: LiDarX iOS Build
+
     environment:
       groups:
-        - LiDarX            # grupo criado no painel de variáveis
+        - LiDarX   # grupo criado no painel do Codemagic
       vars:
         XCODE_PROJECT: "LiDarX.xcodeproj"
         XCODE_SCHEME: "LiDarX Agricultural"
@@ -21,10 +22,7 @@ workflows:
 
     publishing:
       app_store_connect:
-        api_key:
-          key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-          issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-          private_key: $APP_STORE_CONNECT_KEY
+        api_key: $APP_STORE_CONNECT_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
-
-
