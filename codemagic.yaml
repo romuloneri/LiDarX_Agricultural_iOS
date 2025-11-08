@@ -1,1 +1,23 @@
-null
+workflows:
+  lidarx_ios:
+    name: LiDarX iOS Build
+    environment:
+      groups:
+        - LiDarX   # grupo de variáveis configurado no painel do Codemagic
+    scripts:
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --project "LiDarX.xcodeproj" \
+            --scheme "LiDarX Agricultural" \
+            --archive-configuration Release
+    artifacts:
+      - build/ios/ipa/*.ipa
+    
+publishing:
+  app_store_connect:
+    api_key:
+      key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+      issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+      private_key: $APP_STORE_CONNECT_KEY
+    submit_to_testflight: true
