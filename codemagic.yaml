@@ -27,13 +27,13 @@ workflows:
       - build/ios/ipa/*.ipa
       - build/ios/xarchive/*.xcarchive
 
-    publishing:
-      app_store_connect:
-        # Sobe automaticamente para TestFlight (você testa antes de enviar para revisão)
-        submit_to_testflight: true
-        beta_groups:
-          - "Internal Testing"
-        api_key:
-          key_id: $APP_STORE_CONNECT_KEY_ID
-          issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-          private_key: $APP_STORE_CONNECT_PRIVATE_KEY
+publishing:
+  app_store_connect:
+    # Sobe para TestFlight (você testa antes de enviar para revisão)
+    submit_to_testflight: true
+    beta_groups:
+      - name: "Internal Testing"
+    api_key:
+      key_id: $APP_STORE_CONNECT_KEY_ID
+      issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+      private_key: $APP_STORE_CONNECT_PRIVATE_KEY
