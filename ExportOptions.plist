@@ -4,19 +4,26 @@
 <dict>
   <key>method</key>
   <string>app-store</string>
-  <key>teamID</key>
-  <string>M66N5P2D3F</string>
-  <key>compileBitcode</key>
-  <false/>
-  <key>destination</key>
-  <string>export</string>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>stripSwiftSymbols</key>
-  <true/>
   <key>uploadBitcode</key>
   <false/>
   <key>uploadSymbols</key>
   <true/>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>compileBitcode</key>
+  <false/>
+  <key>destination</key>
+  <string>export</string>
+  <key>stripSwiftSymbols</key>
+  <true/>
+  <key>teamID</key>
+  <string>M66N5P2D3F</string>
+  <key>iCloudContainerEnvironment</key>
+  <string>Production</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>com.lidarx.agricultural</key>
+    <string>LiDarX_Distribution_Profile</string>
+  </dict>
 </dict>
 </plist>
