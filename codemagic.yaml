@@ -4,18 +4,14 @@ workflows:
     environment:
       groups:
         - LiDarX
-      vars:
-        XCODE_PROJECT: "LiDarX.xcodeproj"
-        XCODE_SCHEME: "LiDarX Agricultural"   # <— igual ao TARGET do pbxproj (com espaço)
-    scripts:
-      - name: Diagnóstico rápido
-        script: |
-          set -e
-          echo "== xcodebuild -list =="
-          xcodebuild -list -project "$XCODE_PROJECT" || true
+    vars:
+      XCODE_PROJECT: "LiDarX.xcodeproj"
+      XCODE_SCHEME:  "LiDarX Agricultural"
 
+    scripts:
       - name: Clean
         script: |
+          #!/usr/bin/env bash
           set -e
           xcodebuild -project "$XCODE_PROJECT" \
                      -scheme "$XCODE_SCHEME" \
@@ -24,6 +20,7 @@ workflows:
 
       - name: Build IPA
         script: |
+          #!/usr/bin/env bash
           set -e
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
@@ -33,14 +30,16 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - build/ios/xcarchive/*.xcarchive
-      
-publishing:
-  app_store_connect:
-    api_key:
-      key_id: $APP_STORE_CONNECT_KEY_ID
-      issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-      private_key: $APP_STORE_CONNECT_PRIVATE_KEY
-    testflight:
-      submit: true
-      beta_groups:
-        - name: "Internal Testing"   # coloque aqui o nome exato do seu grupo
+
+    publishing:
+      app_store_connect:
+        # Sobe primeiro para o TestFlight
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testing"
+        api_key:
+          key_id: $APP_STORE_CONNECT_KEY_ID
+          issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+          private_key: $APP_STORE_CONNECT_PRIVATE_KEY
+
+
