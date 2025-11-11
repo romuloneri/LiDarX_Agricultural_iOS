@@ -6,8 +6,8 @@ workflows:
       groups:
         - LiDarX   # APP_STORE_CONNECT_KEY_ID / APP_STORE_CONNECT_PRIVATE_KEY / APP_STORE_CONNECT_ISSUER_ID
       vars:
-        # AJUSTE ESTES CONFORME O SEU PROJETO
-        XCODE_PROJECT: "LiDarX.xcodeproj"      # se usar CocoaPods/Workspace: "LiDarX.xcworkspace"
+        # ajuste conforme seu projeto:
+        XCODE_PROJECT: "LiDarX.xcodeproj"      # se usar Pods/Workspace: "LiDarX.xcworkspace"
         XCODE_SCHEME: "LiDarX Agricultural"
         BUNDLE_ID: "com.agroneri.lidarx"
         APPLE_TEAM_ID: "M66N5P2D3F"
@@ -17,24 +17,14 @@ workflows:
         script: |
           #!/usr/bin/env bash
           set -e
-          echo "🔎 Procurando pasta do app (Info.plist)..."
+          echo "🔎 Procurando Info.plist..."
           APP_PLIST_PATH="$(find . -maxdepth 2 -type f -name Info.plist | head -n1 || true)"
-          if [ -n "$APP_PLIST_PATH" ]; then
-            APP_DIR="$(dirname "$APP_PLIST_PATH")"; APP_DIR="${APP_DIR#./}"
-          else
-            APP_DIR="LiDarX"
-          fi
+          if [ -n "$APP_PLIST_PATH" ]; then APP_DIR="$(dirname "$APP_PLIST_PATH")"; APP_DIR="${APP_DIR#./}"; else APP_DIR="LiDarX"; fi
           echo "📁 Pasta alvo: $APP_DIR"
-          if [ -e "$APP_DIR" ] && [ ! -d "$APP_DIR" ]; then
-            echo "⚠️  '$APP_DIR' é arquivo. Fazendo backup..."
-            mv "$APP_DIR" "${APP_DIR}.file_backup_$(date +%s)" || true
-          fi
+          [ -e "$APP_DIR" ] && [ ! -d "$APP_DIR" ] && mv "$APP_DIR" "${APP_DIR}.file_backup_$(date +%s)" || true
           mkdir -p "$APP_DIR"
           ASSETS_DIR="$APP_DIR/Assets.xcassets"
-          if [ -e "$ASSETS_DIR" ] && [ ! -d "$ASSETS_DIR" ]; then
-            echo "⚠️  '$ASSETS_DIR' é arquivo. Fazendo backup..."
-            mv "$ASSETS_DIR" "${ASSETS_DIR}.bak_$(date +%s)" || true
-          fi
+          [ -e "$ASSETS_DIR" ] && [ ! -d "$ASSETS_DIR" ] && mv "$ASSETS_DIR" "${ASSETS_DIR}.bak_$(date +%s)" || true
           mkdir -p "$ASSETS_DIR"
           if [ ! -f "$ASSETS_DIR/Contents.json" ]; then
             printf '%s\n' '{' '  "info": { "version": 1, "author": "xcode" }' '}' > "$ASSETS_DIR/Contents.json"
@@ -46,8 +36,11 @@ workflows:
           #!/usr/bin/env bash
           set -e
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create --team-id "$APPLE_TEAM_ID"
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_DEVELOPMENT --create --team-id "$APPLE_TEAM_ID" || true
+          # Distribuição (App Store) – cria/baixa certificado e perfil automaticamente
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          # Desenvolvimento (opcional)
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_DEVELOPMENT --create || true
+          # Aplica os perfis ao projeto/targets
           xcode-project use-profiles
 
       - name: Clean
