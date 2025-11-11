@@ -4,29 +4,78 @@ workflows:
     environment:
       xcode: 16.4
       groups:
-        - LiDarX
+        - LiDarX                       # seu grupo com as 3 variáveis da API
       vars:
-        XCODE_PROJECT: "LiDarX.xcodeproj"      # troque por .xcworkspace se usar CocoaPods
+        XCODE_PROJECT: "LiDarX.xcodeproj"        # troque para "LiDarX.xcworkspace" se usa Pods/Workspace
         XCODE_SCHEME: "LiDarX Agricultural"
-        BUNDLE_ID: "com.agroneri.lidarx"
+        BUNDLE_ID: "com.agroneri.lidarx"         # ajuste para o seu bundle id
+        APPLE_TEAM_ID: "M66N5P2D3F"              # <<< coloque seu Team ID (10 chars)
     scripts:
-      - name: Clean project
+      - name: Gerar ExportOptions.plist
         script: |
           set -e
-          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean
-      - name: Build and export .ipa
+          cat > "$CM_BUILD_DIR/ExportOptions.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store</string>
+            <key>manageAppVersionAndBuildNumber</key><true/>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>compileBitcode</key><false/>
+          </dict>
+          </plist>
+          PLIST
+          echo "ExportOptions.plist criado em: $CM_BUILD_DIR/ExportOptions.plist"
+
+      - name: Clean
         script: |
           set -e
-          xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean || true
+          # Se for workspace, use:
+          # xcodebuild -workspace "LiDarX.xcworkspace" -scheme "$XCODE_SCHEME" clean || true
+
+      - name: Archive
+        script: |
+          set -e
+          ARCH_PATH="$CM_BUILD_DIR/LiDarX.xcarchive"
+          if [[ "$XCODE_PROJECT" == *".xcworkspace" ]]; then
+            xcodebuild -workspace "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+              -configuration Release \
+              -destination "generic/platform=iOS" \
+              -allowProvisioningUpdates \
+              DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+              archive -archivePath "$ARCH_PATH"
+          else
+            xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+              -configuration Release \
+              -destination "generic/platform=iOS" \
+              -allowProvisioningUpdates \
+              DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+              archive -archivePath "$ARCH_PATH"
+          fi
+
+      - name: Export .ipa
+        script: |
+          set -e
+          ARCH_PATH="$CM_BUILD_DIR/LiDarX.xcarchive"
+          xcodebuild -exportArchive \
+            -archivePath "$ARCH_PATH" \
+            -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
+            -exportPath "$CM_EXPORT_DIR" \
+            -allowProvisioningUpdates
+          ls -lah "$CM_EXPORT_DIR"
+
     artifacts:
-      - build/ios/ipa/*.ipa
       - $CM_EXPORT_DIR/*.ipa
-      - $CM_BUILD_DIR/xcarchive/*.xcarchive
+      - $CM_BUILD_DIR/LiDarX.xcarchive
+
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
+        # beta_groups:
+        #   - Internal Testing
