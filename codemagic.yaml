@@ -4,13 +4,27 @@ workflows:
     environment:
       xcode: 16.4
       groups:
-        - LiDarX                       # seu grupo com as 3 variáveis da API
+        - LiDarX                           # grupo que contém: APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_ISSUER_ID
       vars:
-        XCODE_PROJECT: "LiDarX.xcodeproj"        # troque para "LiDarX.xcworkspace" se usa Pods/Workspace
+        # === AJUSTE ESTES DOIS SE NECESSÁRIO ===
+        XCODE_PROJECT: "LiDarX.xcodeproj"  # se usar CocoaPods/Workspace, troque para "LiDarX.xcworkspace"
         XCODE_SCHEME: "LiDarX Agricultural"
-        BUNDLE_ID: "com.agroneri.lidarx"         # ajuste para o seu bundle id
-        APPLE_TEAM_ID: "M66N5P2D3F"              # <<< coloque seu Team ID (10 chars)
+        # === AJUSTE ESTES TAMBÉM ===
+        BUNDLE_ID: "com.agroneri.lidarx"   # seu bundle id exato do alvo iOS
+        APPLE_TEAM_ID: "M66N5P2D3F"        # seu Apple Team ID (10 caracteres)
+
     scripts:
+      - name: Diagnóstico rápido (opcional)
+        script: |
+          set -e
+          if [[ "$XCODE_PROJECT" == *".xcworkspace" ]]; then
+            PROJFLAG=(-workspace "$XCODE_PROJECT")
+          else
+            PROJFLAG=(-project "$XCODE_PROJECT")
+          fi
+          xcodebuild -list "${PROJFLAG[@]}"
+          xcodebuild -showdestinations "${PROJFLAG[@]}" -scheme "$XCODE_SCHEME" || true
+
       - name: Gerar ExportOptions.plist
         script: |
           set -e
@@ -20,41 +34,44 @@ workflows:
           <plist version="1.0">
           <dict>
             <key>method</key><string>app-store</string>
-            <key>manageAppVersionAndBuildNumber</key><true/>
             <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><true/>
             <key>uploadSymbols</key><true/>
             <key>compileBitcode</key><false/>
           </dict>
           </plist>
           PLIST
-          echo "ExportOptions.plist criado em: $CM_BUILD_DIR/ExportOptions.plist"
+          echo "✅ ExportOptions.plist em: $CM_BUILD_DIR/ExportOptions.plist"
 
       - name: Clean
         script: |
           set -e
-          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean || true
-          # Se for workspace, use:
-          # xcodebuild -workspace "LiDarX.xcworkspace" -scheme "$XCODE_SCHEME" clean || true
+          if [[ "$XCODE_PROJECT" == *".xcworkspace" ]]; then
+            xcodebuild -workspace "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean || true
+          else
+            xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean || true
+          fi
 
-      - name: Archive
+      - name: Archive (iPhoneOS)
         script: |
           set -e
           ARCH_PATH="$CM_BUILD_DIR/LiDarX.xcarchive"
           if [[ "$XCODE_PROJECT" == *".xcworkspace" ]]; then
             xcodebuild -workspace "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
               -configuration Release \
-              -destination "generic/platform=iOS" \
+              -sdk iphoneos \
               -allowProvisioningUpdates \
               DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
               archive -archivePath "$ARCH_PATH"
           else
             xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
               -configuration Release \
-              -destination "generic/platform=iOS" \
+              -sdk iphoneos \
               -allowProvisioningUpdates \
               DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
               archive -archivePath "$ARCH_PATH"
           fi
+          echo "✅ Archive gerado em: $ARCH_PATH"
 
       - name: Export .ipa
         script: |
@@ -65,17 +82,22 @@ workflows:
             -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
             -exportPath "$CM_EXPORT_DIR" \
             -allowProvisioningUpdates
+          echo "✅ IPA exportado para: $CM_EXPORT_DIR"
           ls -lah "$CM_EXPORT_DIR"
 
     artifacts:
       - $CM_EXPORT_DIR/*.ipa
       - $CM_BUILD_DIR/LiDarX.xcarchive
+      - $HOME/Library/Logs/**/*
+      - ~/Library/Developer/Xcode/DerivedData/**/Logs/**
 
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY     # conteúdo do .p8 (variável segura)
         key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
+        # (opcional)
         # beta_groups:
         #   - Internal Testing
+        # app_id: $APP_STORE_APP_ID   # se já tiver o app criado e quiser fixar
