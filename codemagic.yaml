@@ -2,44 +2,41 @@ workflows:
   lidarx_ios:
     name: LiDarX iOS Build
     environment:
+      xcode: 16.4
       groups:
-        - LiDarX
-    vars:
-      XCODE_PROJECT: "LiDarX.xcodeproj"
-      XCODE_SCHEME:  "LiDarX Agricultural"
-
+        - LiDarX                      # usa suas variáveis já criadas
+      vars:
+        XCODE_PROJECT: "LiDarX.xcodeproj"      # mude para .xcworkspace se for o caso
+        XCODE_SCHEME: "LiDarX Agricultural"
+        BUNDLE_ID: "com.seudominio.lidarx"     # ajuste para o seu bundle id
+        # (opcional) se já houver app criado no App Store Connect:
+        # APP_STORE_APP_ID: "1234567890"
     scripts:
       - name: Clean
         script: |
-          #!/usr/bin/env bash
           set -e
-          xcodebuild -project "$XCODE_PROJECT" \
-                     -scheme "$XCODE_SCHEME" \
-                     -configuration Release \
-                     clean
-
-      - name: Build IPA
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean
+      - name: Build .ipa (Archive + Export)
         script: |
-          #!/usr/bin/env bash
           set -e
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME" \
-            --export-options-plist ExportOptions.plist
-
+            --scheme "$XCODE_SCHEME"
+      # Se o seu projeto usa CocoaPods/Workspace, troque o comando acima por:
+      # xcode-project build-ipa --workspace "LiDarX.xcworkspace" --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
-      - build/ios/xcarchive/*.xcarchive
-
+      - $CM_EXPORT_DIR/*.ipa
+      - $CM_BUILD_DIR/xcarchive/*.xcarchive
+      - $HOME/Library/Logs/**/*
     publishing:
       app_store_connect:
-        # Sobe primeiro para o TestFlight
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY     # conteúdo do .p8
+        key_id: $APP_STORE_CONNECT_KEY_ID
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
-        beta_groups:
-          - "Internal Testing"
-        api_key:
-          key_id: $APP_STORE_CONNECT_KEY_ID
-          issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-          private_key: $APP_STORE_CONNECT_PRIVATE_KEY
-
-
+        # (opcional) limitar a grupos internos do TestFlight:
+        # beta_groups:
+        #   - Internal Testing
+        # (opcional) se já tiver APP_STORE_APP_ID:
+        # app_id: $APP_STORE_APP_ID
