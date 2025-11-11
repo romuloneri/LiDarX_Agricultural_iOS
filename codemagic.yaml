@@ -4,39 +4,30 @@ workflows:
     environment:
       xcode: 16.4
       groups:
-        - LiDarX                      # usa suas variáveis já criadas
+        - LiDarX
       vars:
-        XCODE_PROJECT: "LiDarX.xcodeproj"      # mude para .xcworkspace se for o caso
+        XCODE_PROJECT: "LiDarX.xcodeproj"
         XCODE_SCHEME: "LiDarX Agricultural"
-        BUNDLE_ID: "com.seudominio.lidarx"     # ajuste para o seu bundle id
-        # (opcional) se já houver app criado no App Store Connect:
-        # APP_STORE_APP_ID: "1234567890"
+        BUNDLE_ID: "com.agroneri.lidarx"
     scripts:
-      - name: Clean
+      - name: Clean project
         script: |
           set -e
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean
-      - name: Build .ipa (Archive + Export)
+      - name: Build and export .ipa
         script: |
           set -e
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
-      # Se o seu projeto usa CocoaPods/Workspace, troque o comando acima por:
-      # xcode-project build-ipa --workspace "LiDarX.xcworkspace" --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            --archive-path "$CM_BUILD_DIR/LiDarX.xcarchive" \
+            --export-method app-store
     artifacts:
       - build/ios/ipa/*.ipa
-      - $CM_EXPORT_DIR/*.ipa
-      - $CM_BUILD_DIR/xcarchive/*.xcarchive
-      - $HOME/Library/Logs/**/*
+      - $CM_BUILD_DIR/LiDarX.xcarchive
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY     # conteúdo do .p8
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_ID
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
-        # (opcional) limitar a grupos internos do TestFlight:
-        # beta_groups:
-        #   - Internal Testing
-        # (opcional) se já tiver APP_STORE_APP_ID:
-        # app_id: $APP_STORE_APP_ID
