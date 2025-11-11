@@ -8,8 +8,8 @@ workflows:
       vars:
         XCODE_PROJECT: "LiDarX.xcodeproj"   # troque para "LiDarX.xcworkspace" se usar Pods/Workspace
         XCODE_SCHEME: "LiDarX Agricultural"
-        BUNDLE_ID: "com.agroneri.lidarx"    # seu bundle id exato (alvo iOS)
-        APPLE_TEAM_ID: "M66N5P2D3F"         # seu Apple Team ID (10 caracteres)
+        BUNDLE_ID: "com.agroneri.lidarx"    # seu bundle id (alvo iOS)
+        APPLE_TEAM_ID: "M66N5P2D3F"         # seu Apple Team ID (10 chars)
 
     scripts:
       - name: Diagnóstico rápido (opcional)
@@ -23,59 +23,55 @@ workflows:
           xcodebuild -list "${PROJ[@]}"
           xcodebuild -showdestinations "${PROJ[@]}" -scheme "$XCODE_SCHEME" || true
 
-      - name: Corrigir Assets.xcassets (robusto)
+      - name: Corrigir Assets.xcassets (robusto, sem heredoc)
         script: |
           set -e
-          # Descobre a pasta do app (a que tem Info.plist). Se não achar, usa "LiDarX".
+          # Detecta pasta do app (a que contém Info.plist). Fallback para "LiDarX".
           APP_DIR="$(ls -1d */ 2>/dev/null | sed 's:/$::' | while read d; do
             if [ -f "$d/Info.plist" ]; then echo "$d"; break; fi
           done)"
           [ -z "$APP_DIR" ] && APP_DIR="LiDarX"
           echo "📁 Pasta do app: $APP_DIR"
 
-          # Se APP_DIR existir mas NÃO for diretório, backup e cria diretório
+          # Se APP_DIR existir mas não for diretório, faz backup e cria
           if [ -e "$APP_DIR" ] && [ ! -d "$APP_DIR" ]; then
-            echo "⚠️  $APP_DIR existe como ARQUIVO. Fazendo backup e criando diretório..."
             mv "$APP_DIR" "${APP_DIR}.file_backup_$(date +%s)"
           fi
           mkdir -p "$APP_DIR"
 
           ASSETS_DIR="$APP_DIR/Assets.xcassets"
 
-          # Se Assets.xcassets for ARQUIVO, backup
+          # Se Assets.xcassets for ARQUIVO, faz backup
           if [ -e "$ASSETS_DIR" ] && [ ! -d "$ASSETS_DIR" ]; then
-            echo "⚠️  $ASSETS_DIR é ARQUIVO. Fazendo backup..."
             mv "$ASSETS_DIR" "${ASSETS_DIR}.bak_$(date +%s)"
           fi
 
           # Garante diretório e Contents.json mínimo
           mkdir -p "$ASSETS_DIR"
           if [ ! -f "$ASSETS_DIR/Contents.json" ]; then
-            cat > "$ASSETS_DIR/Contents.json" <<'JSON'
-{
-  "info": { "version": 1, "author": "xcode" }
-}
-JSON
+            printf '%s\n' '{' \
+              '  "info": { "version": 1, "author": "xcode" }' \
+              '}' > "$ASSETS_DIR/Contents.json"
           fi
           echo "✅ Assets prontos em: $ASSETS_DIR"
 
-      - name: Gerar ExportOptions.plist
+      - name: Gerar ExportOptions.plist (sem heredoc)
         script: |
           set -e
-          cat > "$CM_BUILD_DIR/ExportOptions.plist" <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key><string>app-store</string>
-            <key>signingStyle</key><string>automatic</string>
-            <key>manageAppVersionAndBuildNumber</key><true/>
-            <key>uploadSymbols</key><true/>
-            <key>compileBitcode</key><false/>
-          </dict>
-          </plist>
-          PLIST
-          echo "✅ ExportOptions.plist em: $CM_BUILD_DIR/ExportOptions.plist"
+          plist_path="$CM_BUILD_DIR/ExportOptions.plist"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0">' \
+            '<dict>' \
+            '  <key>method</key><string>app-store</string>' \
+            '  <key>signingStyle</key><string>automatic</string>' \
+            '  <key>manageAppVersionAndBuildNumber</key><true/>' \
+            '  <key>uploadSymbols</key><true/>' \
+            '  <key>compileBitcode</key><false/>' \
+            '</dict>' \
+            '</plist>' > "$plist_path"
+          echo "✅ ExportOptions.plist em: $plist_path"
 
       - name: Clean
         script: |
