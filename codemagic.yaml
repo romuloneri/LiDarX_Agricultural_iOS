@@ -4,7 +4,7 @@ workflows:
     environment:
       xcode: 16.4
       groups:
-        - LiDarX   # APP_STORE_CONNECT_KEY_ID / APP_STORE_CONNECT_PRIVATE_KEY / APP_STORE_CONNECT_ISSUER_ID
+        - LiDarX   # grupo com APP_STORE_CONNECT_PRIVATE_KEY / APP_STORE_CONNECT_KEY_IDENTIFIER / APP_STORE_CONNECT_ISSUER_ID
       vars:
         # ajuste conforme seu projeto:
         XCODE_PROJECT: "LiDarX.xcodeproj"      # se usar Pods/Workspace: "LiDarX.xcworkspace"
@@ -31,17 +31,7 @@ workflows:
           fi
           echo "✅ Assets OK em: $ASSETS_DIR"
 
-      - name: Buscar/gerar certificados e perfis (via App Store Connect)
-        script: |
-          #!/usr/bin/env bash
-          set -e
-          keychain initialize
-          # Distribuição (App Store) – cria/baixa certificado e perfil automaticamente
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-          # Desenvolvimento (opcional)
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_DEVELOPMENT --create || true
-          # Aplica os perfis ao projeto/targets
-          xcode-project use-profiles
+      # ⚠️ REMOVIDO o passo de buscar/gerar certificados via App Store Connect
 
       - name: Clean
         script: |
@@ -116,7 +106,7 @@ workflows:
     publishing:
       app_store_connect:
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_ID
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         # beta_groups:
