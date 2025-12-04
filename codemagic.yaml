@@ -1,6 +1,7 @@
 workflows:
   lidarx_ios:
     name: LiDarX iOS Build
+    max_build_duration: 60
     environment:
       xcode: 16.4
       groups:
@@ -17,15 +18,30 @@ workflows:
         script: |
           #!/usr/bin/env bash
           set -e
-          echo "🔧 Resetando LiDarX/Assets.xcassets..."
+          echo "🔧 Ajustando LiDarX/Assets.xcassets..."
+
           APP_DIR="LiDarX"
           ASSETS_DIR="$APP_DIR/Assets.xcassets"
 
-          # apaga QUALQUER coisa que exista nesse caminho (arquivo ou pasta)
-          rm -rf "$ASSETS_DIR"
+          # Se existir ALGO chamado "LiDarX" que NÃO seja pasta, renomeia pra backup
+          if [ -e "$APP_DIR" ] && [ ! -d "$APP_DIR" ]; then
+            echo "⚠️ '$APP_DIR' é um arquivo, movendo para backup..."
+            mv "$APP_DIR" "${APP_DIR}.file_backup_$(date +%s)"
+          fi
 
-          # recria como pasta vazia com Contents.json válido
+          # Garante que a pasta LiDarX existe
+          mkdir -p "$APP_DIR"
+
+          # Se existir ALGO chamado Assets.xcassets que não seja pasta, faz backup
+          if [ -e "$ASSETS_DIR" ] && [ ! -d "$ASSETS_DIR" ]; then
+            echo "⚠️ '$ASSETS_DIR' não é diretório, movendo para backup..."
+            mv "$ASSETS_DIR" "${ASSETS_DIR}.bak_$(date +%s)"
+          fi
+
+          # Cria a pasta Assets.xcassets
           mkdir -p "$ASSETS_DIR"
+
+          # Cria Contents.json padrão
           cat > "$ASSETS_DIR/Contents.json" << 'EOF'
           {
             "info": {
@@ -34,14 +50,42 @@ workflows:
             }
           }
           EOF
-          echo "✅ Assets.xcassets recriado em: $ASSETS_DIR"
 
-      # ⚠️ PASSO DE BUSCAR/GerAR CERTIFICADOS FOI REMOVIDO DE PROPÓSITO
+          echo "✅ Assets.xcassets OK em: $ASSETS_DIR"
+
+      - name: Buscar/gerar certificados e perfis (via App Store Connect)
+        script: |
+          #!/usr/bin/env bash
+          set -e
+          echo "🔐 Inicializando keychain e buscando certificados/perfis..."
+          keychain initialize
+
+          # Gera/baixa certificado + provisioning profile de App Store para o BUNDLE_ID
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --api-key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --api-issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --api-private-key "$APP_STORE_CONNECT_PRIVATE_KEY"
+
+          # (Opcional) perfil de desenvolvimento, se quiser usar depois – não é obrigatório
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_DEVELOPMENT \
+            --create \
+            --api-key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --api-issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --api-private-key "$APP_STORE_CONNECT_PRIVATE_KEY" || true
+
+          # Aplica os perfis encontrados no projeto Xcode
+          xcode-project use-profiles
+
+          echo "✅ Certificados e perfis aplicados no projeto"
 
       - name: Clean
         script: |
           #!/usr/bin/env bash
           set -e
+          echo "🧹 Limpando projeto..."
           if [[ "$XCODE_PROJECT" == *".xcworkspace" ]]; then
             xcodebuild -workspace "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean || true
           else
@@ -52,6 +96,7 @@ workflows:
         script: |
           #!/usr/bin/env bash
           set -e
+          echo "📦 Gerando archive..."
           ARCH_PATH="$CM_BUILD_DIR/LiDarX.xcarchive"
           if [[ "$XCODE_PROJECT" == *".xcworkspace" ]]; then
             xcodebuild -workspace "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
@@ -76,6 +121,7 @@ workflows:
         script: |
           #!/usr/bin/env bash
           set -e
+          echo "📝 Gerando ExportOptions.plist..."
           plist_path="$CM_BUILD_DIR/ExportOptions.plist"
           printf '%s\n' \
             '<?xml version="1.0" encoding="UTF-8"?>' \
@@ -94,6 +140,7 @@ workflows:
         script: |
           #!/usr/bin/env bash
           set -e
+          echo "📤 Exportando .ipa..."
           ARCH_PATH="$CM_BUILD_DIR/LiDarX.xcarchive"
           xcodebuild -exportArchive \
             -archivePath "$ARCH_PATH" \
