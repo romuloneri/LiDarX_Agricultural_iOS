@@ -13,25 +13,30 @@ workflows:
         APPLE_TEAM_ID: "M66N5P2D3F"
 
     scripts:
-      - name: Corrigir Assets.xcassets (robusto)
+      - name: Corrigir Assets.xcassets (forçar estrutura correta)
         script: |
           #!/usr/bin/env bash
           set -e
-          echo "🔎 Procurando Info.plist..."
-          APP_PLIST_PATH="$(find . -maxdepth 2 -type f -name Info.plist | head -n1 || true)"
-          if [ -n "$APP_PLIST_PATH" ]; then APP_DIR="$(dirname "$APP_PLIST_PATH")"; APP_DIR="${APP_DIR#./}"; else APP_DIR="LiDarX"; fi
-          echo "📁 Pasta alvo: $APP_DIR"
-          [ -e "$APP_DIR" ] && [ ! -d "$APP_DIR" ] && mv "$APP_DIR" "${APP_DIR}.file_backup_$(date +%s)" || true
-          mkdir -p "$APP_DIR"
+          echo "🔧 Resetando LiDarX/Assets.xcassets..."
+          APP_DIR="LiDarX"
           ASSETS_DIR="$APP_DIR/Assets.xcassets"
-          [ -e "$ASSETS_DIR" ] && [ ! -d "$ASSETS_DIR" ] && mv "$ASSETS_DIR" "${ASSETS_DIR}.bak_$(date +%s)" || true
-          mkdir -p "$ASSETS_DIR"
-          if [ ! -f "$ASSETS_DIR/Contents.json" ]; then
-            printf '%s\n' '{' '  "info": { "version": 1, "author": "xcode" }' '}' > "$ASSETS_DIR/Contents.json"
-          fi
-          echo "✅ Assets OK em: $ASSETS_DIR"
 
-      # ⚠️ REMOVIDO o passo de buscar/gerar certificados via App Store Connect
+          # apaga QUALQUER coisa que exista nesse caminho (arquivo ou pasta)
+          rm -rf "$ASSETS_DIR"
+
+          # recria como pasta vazia com Contents.json válido
+          mkdir -p "$ASSETS_DIR"
+          cat > "$ASSETS_DIR/Contents.json" << 'EOF'
+          {
+            "info": {
+              "version": 1,
+              "author": "xcode"
+            }
+          }
+          EOF
+          echo "✅ Assets.xcassets recriado em: $ASSETS_DIR"
+
+      # ⚠️ PASSO DE BUSCAR/GerAR CERTIFICADOS FOI REMOVIDO DE PROPÓSITO
 
       - name: Clean
         script: |
