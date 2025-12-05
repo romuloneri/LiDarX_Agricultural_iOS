@@ -57,6 +57,28 @@ workflows:
           echo "🧹 Limpando projeto..."
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean || true
 
+      - name: Remover Info.plist do Copy Bundle Resources
+        script: |
+          #!/usr/bin/env bash
+          set -e
+          echo "🔧 Removendo 'Info.plist in Resources' do projeto para evitar duplicidade..."
+
+          PBXPROJ="$XCODE_PROJECT/project.pbxproj"
+
+          if [ ! -f "$PBXPROJ" ]; then
+            echo "❌ Arquivo $PBXPROJ não encontrado."
+            exit 1
+          fi
+
+          if grep -q "Info.plist in Resources" "$PBXPROJ"; then
+            echo "⚠️ Entrada 'Info.plist in Resources' encontrada. Limpando..."
+            # em macOS precisa do -i '' no sed
+            sed -i '' "/Info.plist in Resources/d" "$PBXPROJ"
+            echo "✅ Todas as referências a 'Info.plist in Resources' foram removidas."
+          else
+            echo "ℹ️ Nenhuma entrada 'Info.plist in Resources' encontrada. Nada a fazer."
+          fi
+
       - name: Archive (assinar usando certificado/perfil específicos)
         script: |
           #!/usr/bin/env bash
