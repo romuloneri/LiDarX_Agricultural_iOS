@@ -25,18 +25,18 @@ workflows:
           APP_DIR="LiDarX"
           ASSETS_DIR="$APP_DIR/Assets.xcassets"
 
+          # Garante que LiDarX é diretório
           if [ -e "$APP_DIR" ] && [ ! -d "$APP_DIR" ]; then
             echo "⚠️ '$APP_DIR' é um arquivo, movendo para backup..."
             mv "$APP_DIR" "${APP_DIR}.file_backup_$(date +%s)"
           fi
-
           mkdir -p "$APP_DIR"
 
+          # Garante que Assets.xcassets é diretório com Contents.json
           if [ -e "$ASSETS_DIR" ] && [ ! -d "$ASSETS_DIR" ]; then
             echo "⚠️ '$ASSETS_DIR' não é diretório, movendo para backup..."
             mv "$ASSETS_DIR" "${ASSETS_DIR}.bak_$(date +%s)"
           fi
-
           mkdir -p "$ASSETS_DIR"
 
           cat > "$ASSETS_DIR/Contents.json" << 'EOF'
@@ -49,6 +49,44 @@ workflows:
           EOF
 
           echo "✅ Assets.xcassets OK em: $ASSETS_DIR"
+
+      - name: Criar LaunchScreen.storyboard se não existir
+        script: |
+          #!/usr/bin/env bash
+          set -e
+          echo "🧾 Verificando LaunchScreen.storyboard..."
+
+          APP_DIR="LiDarX"
+          LS_FILE="$APP_DIR/LaunchScreen.storyboard"
+
+          mkdir -p "$APP_DIR"
+
+          if [ -f "$LS_FILE" ]; then
+            echo "✅ LaunchScreen.storyboard já existe em: $LS_FILE"
+          else
+            echo "⚠️ LaunchScreen.storyboard não existe. Criando dummy..."
+            cat > "$LS_FILE" << 'EOF'
+            <?xml version="1.0" encoding="UTF-8"?>
+            <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="20037" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="VC">
+              <device id="retina6_1" orientation="portrait" appearance="light"/>
+              <scenes>
+                <!-- Launch Screen -->
+                <scene sceneID="scene">
+                  <objects>
+                    <viewController id="VC" sceneMemberID="viewController">
+                      <view key="view" contentMode="scaleToFill" id="view">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                      </view>
+                    </viewController>
+                    <placeholder placeholderIdentifier="IBFirstResponder" id="responder" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                  </objects>
+                </scene>
+              </scenes>
+            </document>
+            EOF
+            echo "✅ LaunchScreen.storyboard criado em: $LS_FILE"
+          fi
 
       - name: Clean
         script: |
@@ -72,7 +110,6 @@ workflows:
 
           if grep -q "Info.plist in Resources" "$PBXPROJ"; then
             echo "⚠️ Entrada 'Info.plist in Resources' encontrada. Limpando..."
-            # em macOS precisa do -i '' no sed
             sed -i '' "/Info.plist in Resources/d" "$PBXPROJ"
             echo "✅ Todas as referências a 'Info.plist in Resources' foram removidas."
           else
