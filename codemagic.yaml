@@ -1,11 +1,11 @@
 workflows:
   lidarx_ios:
     name: LiDarX iOS Build
-    max_build_duration: 60
+
     environment:
       xcode: 16.4
       groups:
-        - LiDarX   # grupo com APP_STORE_CONNECT_* já criado
+        - LiDarX
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.lidarx.agricultural
@@ -16,76 +16,34 @@ workflows:
         APPLE_TEAM_ID: "M66N5P2D3F"
 
     scripts:
-      - name: Corrigir Assets.xcassets (forçar estrutura correta)
+      - name: Preparar Assets e LaunchScreen
         script: |
           #!/usr/bin/env bash
           set -e
-          echo "🔧 Ajustando LiDarX/Assets.xcassets..."
+          echo "🔧 Preparando estrutura LiDarX..."
 
           APP_DIR="LiDarX"
           ASSETS_DIR="$APP_DIR/Assets.xcassets"
-
-          # Garante que LiDarX é diretório
-          if [ -e "$APP_DIR" ] && [ ! -d "$APP_DIR" ]; then
-            echo "⚠️ '$APP_DIR' é um arquivo, movendo para backup..."
-            mv "$APP_DIR" "${APP_DIR}.file_backup_$(date +%s)"
-          fi
-          mkdir -p "$APP_DIR"
-
-          # Garante que Assets.xcassets é diretório com Contents.json
-          if [ -e "$ASSETS_DIR" ] && [ ! -d "$ASSETS_DIR" ]; then
-            echo "⚠️ '$ASSETS_DIR' não é diretório, movendo para backup..."
-            mv "$ASSETS_DIR" "${ASSETS_DIR}.bak_$(date +%s)"
-          fi
-          mkdir -p "$ASSETS_DIR"
-
-          cat > "$ASSETS_DIR/Contents.json" << 'EOF'
-          {
-            "info": {
-              "version": 1,
-              "author": "xcode"
-            }
-          }
-          EOF
-
-          echo "✅ Assets.xcassets OK em: $ASSETS_DIR"
-
-      - name: Criar LaunchScreen.storyboard se não existir
-        script: |
-          #!/usr/bin/env bash
-          set -e
-          echo "🧾 Verificando LaunchScreen.storyboard..."
-
-          APP_DIR="LiDarX"
           LS_FILE="$APP_DIR/LaunchScreen.storyboard"
 
+          mkdir -p "$ASSETS_DIR"
+
+          # JSON simples em uma linha
+          if [ ! -f "$ASSETS_DIR/Contents.json" ]; then
+            echo '{"info":{"version":1,"author":"xcode"}}' > "$ASSETS_DIR/Contents.json"
+            echo "✅ Contents.json criado"
+          else
+            echo "✅ Contents.json já existe"
+          fi
+
           mkdir -p "$APP_DIR"
 
-          if [ -f "$LS_FILE" ]; then
-            echo "✅ LaunchScreen.storyboard já existe em: $LS_FILE"
+          if [ ! -f "$LS_FILE" ]; then
+            echo "📄 Criando LaunchScreen.storyboard..."
+            echo '<?xml version="1.0" encoding="UTF-8"?><document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" targetRuntime="iOS.CocoaTouch"><scenes><scene sceneID="launch"><objects><viewController id="VC" sceneMemberID="viewController"><view key="view" id="view" backgroundColor="white"/></viewController></objects></scene></scenes></document>' > "$LS_FILE"
+            echo "✅ LaunchScreen.storyboard criado"
           else
-            echo "⚠️ LaunchScreen.storyboard não existe. Criando dummy..."
-            cat > "$LS_FILE" << 'EOF'
-            <?xml version="1.0" encoding="UTF-8"?>
-            <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="20037" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="VC">
-              <device id="retina6_1" orientation="portrait" appearance="light"/>
-              <scenes>
-                <!-- Launch Screen -->
-                <scene sceneID="scene">
-                  <objects>
-                    <viewController id="VC" sceneMemberID="viewController">
-                      <view key="view" contentMode="scaleToFill" id="view">
-                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                      </view>
-                    </viewController>
-                    <placeholder placeholderIdentifier="IBFirstResponder" id="responder" userLabel="First Responder" sceneMemberID="firstResponder"/>
-                  </objects>
-                </scene>
-              </scenes>
-            </document>
-            EOF
-            echo "✅ LaunchScreen.storyboard criado em: $LS_FILE"
+            echo "✅ LaunchScreen.storyboard já existe"
           fi
 
       - name: Clean
@@ -95,32 +53,11 @@ workflows:
           echo "🧹 Limpando projeto..."
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" clean || true
 
-      - name: Remover Info.plist do Copy Bundle Resources
+      - name: Archive
         script: |
           #!/usr/bin/env bash
           set -e
-          echo "🔧 Removendo 'Info.plist in Resources' do projeto para evitar duplicidade..."
-
-          PBXPROJ="$XCODE_PROJECT/project.pbxproj"
-
-          if [ ! -f "$PBXPROJ" ]; then
-            echo "❌ Arquivo $PBXPROJ não encontrado."
-            exit 1
-          fi
-
-          if grep -q "Info.plist in Resources" "$PBXPROJ"; then
-            echo "⚠️ Entrada 'Info.plist in Resources' encontrada. Limpando..."
-            sed -i '' "/Info.plist in Resources/d" "$PBXPROJ"
-            echo "✅ Todas as referências a 'Info.plist in Resources' foram removidas."
-          else
-            echo "ℹ️ Nenhuma entrada 'Info.plist in Resources' encontrada. Nada a fazer."
-          fi
-
-      - name: Archive (assinar usando certificado/perfil específicos)
-        script: |
-          #!/usr/bin/env bash
-          set -e
-          echo "📦 Gerando archive com assinatura manual..."
+          echo "📦 Gerando archive..."
           ARCH_PATH="$CM_BUILD_DIR/LiDarX.xcarchive"
 
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
@@ -128,9 +65,7 @@ workflows:
             -sdk iphoneos \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
-            PROVISIONING_PROFILE_SPECIFIER="LiDarX_Distribution_Profile" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGN_STYLE=Automatic \
             archive -archivePath "$ARCH_PATH"
 
           echo "✅ Archive gerado em: $ARCH_PATH"
@@ -139,32 +74,21 @@ workflows:
         script: |
           #!/usr/bin/env bash
           set -e
-          echo "📝 Gerando ExportOptions.plist..."
-          cat > "$CM_BUILD_DIR/ExportOptions.plist" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key><string>app-store</string>
-            <key>signingStyle</key><string>manual</string>
-            <key>uploadSymbols</key><true/>
-            <key>compileBitcode</key><false/>
-          </dict>
-          </plist>
-          EOF
-          echo "✅ ExportOptions.plist OK"
+          echo "📝 Criando ExportOptions.plist..."
+          PLIST="$CM_BUILD_DIR/ExportOptions.plist"
+          echo '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>method</key><string>app-store</string><key>uploadSymbols</key><true/><key>compileBitcode</key><false/></dict></plist>' > "$PLIST"
+          echo "✅ ExportOptions.plist criado em: $PLIST"
 
       - name: Export .ipa
         script: |
           #!/usr/bin/env bash
           set -e
           echo "📤 Exportando IPA..."
-          ARCH_PATH="$CM_BUILD_DIR/LiDarX.xcarchive"
           xcodebuild -exportArchive \
-            -archivePath "$ARCH_PATH" \
+            -archivePath "$CM_BUILD_DIR/LiDarX.xcarchive" \
             -exportOptionsPlist "$CM_BUILD_DIR/ExportOptions.plist" \
             -exportPath "$CM_EXPORT_DIR"
-          echo "✅ IPA exportado:"
+          echo "✅ IPA gerado. Conteúdo do diretório:"
           ls -lah "$CM_EXPORT_DIR"
 
     artifacts:
